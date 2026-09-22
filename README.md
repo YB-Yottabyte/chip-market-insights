@@ -1,6 +1,6 @@
 <h1 align="center">Chip Market Dashboard</h1>
 
-<p align="center">Semiconductor market trends and company financials, with a closer look at onsemi.</p>
+<p align="center">Semiconductor sales, regional trends, and financial performance across six chip companies.</p>
 
 ---
 
@@ -15,17 +15,11 @@
   </tr>
 </table>
 
-## Why I built this
+<br>
 
-Chips are hard to miss in the news in 2026. An [AP story about TSMC expanding chip production](https://apnews.com/article/ba05b1b952257d371acb9d070e7914ff) made me wonder what the wider industry looked like over time. How much had chip sales grown? Which regions drove the changes? And how did onsemi perform during those shifts?
+Chips are hard to miss in the news in 2026. An [AP story about TSMC expanding chip production](https://apnews.com/article/ba05b1b952257d371acb9d070e7914ff) made me curious about the bigger picture: how global sales changed over time, which regions grew, and how different chip companies performed. This dashboard brings WSTS market data and SEC filings together to explore those questions. Python and SQL prepare the data for analysis in Power BI.
 
-I built this project to answer those questions with public data. It combines SEC financial filings for six chip companies with monthly industry data from WSTS. Python checks and prepares the data, SQL stores it, and Power BI helps show the trends. The companies are viewed in the context of their different businesses.
-
-## What the dashboard explores
-
-- Global and regional semiconductor sales over time.
-- Revenue, margins, and R&D for onsemi, NVIDIA, AMD, Intel, Texas Instruments, and Micron.
-- onsemi's growth alongside wider market trends and its cited end-market mix.
+<br>
 
 ## How the data moves
 
@@ -33,7 +27,7 @@ I built this project to answer those questions with public data. It combines SEC
 flowchart LR
     A[SEC Company Facts] --> C[Python ETL]
     B[WSTS workbook] --> C
-    D[Cited onsemi disclosures] --> C
+    D[Optional cited onsemi data] --> C
     C --> E[Quality checks]
     E --> F[SQLite or PostgreSQL]
     F --> G[SQL views and CSV exports]
@@ -86,7 +80,7 @@ The SEC uses this contact to identify automated requests. The app reads `.env` a
 
 Download the XLSX file from the [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) and place the original workbook in `data/raw/industry/`. The loader reads it directly. The [input notes](data/raw/industry/README.md) explain other accepted files.
 
-The company data can load without this workbook. Market charts and onsemi-to-industry comparisons need it.
+The company data can load without this workbook. Market data and cross-market comparisons need it.
 
 ### 5. Run and check the pipeline
 
@@ -100,21 +94,30 @@ The pipeline caches SEC responses, validates the rows, updates `data/processed/s
 
 After a successful run, open [exploratory_analysis.ipynb](notebooks/exploratory_analysis.ipynb) with `jupyter lab` to explore the exported data. To use PostgreSQL, set `DATABASE_URL` to a SQLAlchemy PostgreSQL URL and install a compatible driver.
 
-## Data and outputs
+## Datasets
 
-| Source | Used for |
+| Dataset | How it is added | What it contains |
+| --- | --- | --- |
+| [SEC Company Facts](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | Downloaded by the pipeline | Financial data for onsemi, NVIDIA, AMD, Intel, Texas Instruments, and Micron |
+| [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) | Download the XLSX file to `data/raw/industry/` | Monthly semiconductor sales by region |
+| [Cited onsemi disclosures](data/reference/onsemi_end_markets.csv) | Included in `data/reference/` | Available Automotive, Industrial, and Other end-market rows |
+
+## Outputs
+
+| File | What it shows |
 | --- | --- |
-| [SEC Company Facts API](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | Company revenue, profit, R&D, assets, cash, and filing dates |
-| [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) | Monthly semiconductor sales by region |
-| [Cited onsemi disclosures](data/reference/onsemi_end_markets.csv) | Available Automotive, Industrial, and Other end-market data |
+| `data/processed/semiconductor.db` | SQLite tables and reporting views |
+| `data/processed/quality_summary.json` | Data checks and row counts from the latest run |
+| `data/exports/vw_company_financials.csv` | Company financial records by fiscal quarter |
+| `data/exports/vw_market_sales.csv` | Monthly semiconductor sales by region |
+| `data/exports/company_metrics.csv` and `market_metrics.csv` | Growth, margins, R&D intensity, and regional measures |
+| `data/exports/onsemi_industry_comparison.csv` | Quarters with a matching three-month industry window |
 
-The main exports are `vw_company_financials.csv`, `vw_market_sales.csv`, `company_metrics.csv`, `market_metrics.csv`, and `onsemi_industry_comparison.csv`. All are written to `data/exports/`. The [SQL schema](sql/schema.sql), [views](sql/views.sql), and [example queries](sql/analytics_queries.sql) show how the database is organized.
-
-The pipeline uses reported 10-Q quarters when possible. It calculates Q4 from a 10-K only when the first three quarters are available. Missing amounts stay missing. Growth rates require a matching earlier period, and the onsemi-to-industry comparison uses complete three-month market windows.
+The [SQL schema](sql/schema.sql), [views](sql/views.sql), and [example queries](sql/analytics_queries.sql) show how the database is organized. Missing values stay missing. Growth calculations require an actual earlier period.
 
 ## Verified run
 
-The September 22, 2026 (UTC) run loaded **388 company quarters** from **6 companies** and **2,435 industry region-month rows**. It produced **60 onsemi-to-industry growth comparisons**. All quality checks and **26 tests** passed. These counts can change when the sources update. See the [measured project statistics](docs/RESUME_METRICS.md) and [source checks](docs/SOURCE_VALIDATION.md).
+The September 22, 2026 (UTC) run loaded **388 company quarters** from **6 companies** and **2,435 industry region-month rows**. All quality checks and **26 tests** passed. These counts can change when the sources update. See the [measured project statistics](docs/RESUME_METRICS.md) and [source checks](docs/SOURCE_VALIDATION.md).
 
 ## Repository map
 
@@ -130,4 +133,4 @@ powerbi/    Existing Power BI support files
 
 ## Limits
 
-The WSTS workbook is downloaded separately and is not republished here. Company fiscal calendars differ, so quarter labels may cover different dates. SEC data does not provide a complete onsemi end-market history. The onsemi and industry growth comparison shows timing, not causation.
+The WSTS workbook is downloaded separately and is not republished here. Company fiscal calendars differ, and some SEC values are unavailable. onsemi end-market rows cover only cited periods. Company and industry trends show timing, not causation.
