@@ -1,4 +1,4 @@
-<h1 align="center">Chip Market Dashboard</h1>
+<h1 align="center">Chip Market Insights</h1>
 
 <p align="center">Global semiconductor sales, regional trends, and company financials.</p>
 <!--
