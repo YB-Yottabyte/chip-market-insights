@@ -1,0 +1,7 @@
+period_end,period_type,end_market,revenue,revenue_percentage,source_document,source_type
+2025-12-31,annual,Automotive,,51,https://www.sec.gov/Archives/edgar/data/1097864/000109786426000006/on-20251231.htm,manual SEC filing extraction
+2025-12-31,annual,Industrial,,28,https://www.sec.gov/Archives/edgar/data/1097864/000109786426000006/on-20251231.htm,manual SEC filing extraction
+2025-12-31,annual,Other,,21,https://www.sec.gov/Archives/edgar/data/1097864/000109786426000006/on-20251231.htm,manual SEC filing extraction
+2026-07-03,quarterly,Automotive,781000000,,https://investor.onsemi.com/static-files/4e0fbfa7-cca6-41c9-931c-836cc15ef5fd,manual investor presentation extraction
+2026-07-03,quarterly,Industrial,423000000,,https://investor.onsemi.com/static-files/4e0fbfa7-cca6-41c9-931c-836cc15ef5fd,manual investor presentation extraction
+2026-07-03,quarterly,Other,400000000,,https://investor.onsemi.com/static-files/4e0fbfa7-cca6-41c9-931c-836cc15ef5fd,manual investor presentation extraction

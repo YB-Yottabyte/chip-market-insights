@@ -1,0 +1,17 @@
+.env
+.DS_Store
+.venv/
+node_modules/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+*.db
+data/raw/sec/*
+!data/raw/sec/.gitkeep
+data/raw/industry/*
+!data/raw/industry/.gitkeep
+!data/raw/industry/README.md
+data/processed/*
+!data/processed/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
