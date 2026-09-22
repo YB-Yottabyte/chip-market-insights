@@ -1,8 +1,8 @@
 # Chip Market Dashboard
 
-An end-to-end semiconductor analytics project built with Python, SQL, and Power BI. It combines public company filings with monthly industry data to study market trends and onsemi's financial performance.
+Chips seem to be in the news all the time in 2026. After reading about [changes in global semiconductor sales](https://www.semiconductors.org/global-semiconductor-sales-increase-6-4-month-to-month-in-july/), I wanted to look beyond one month's headline. How has the market changed over the years? Which regions have driven growth? And how has onsemi performed during those shifts?
 
-The analysis compares companies in context. onsemi and Texas Instruments have different markets from NVIDIA, AMD, Intel, and Micron, so the project groups them by business focus instead of ranking them as winners and losers.
+I built Chip Market Dashboard to explore those questions with public data. It brings together monthly industry sales and financial filings for onsemi and five other chip companies. Python and SQL clean, check, and organize the data for analysis and Power BI. The project focuses on market trends, company context, and onsemi's place in the wider industry.
 
 ## What this project answers
 
