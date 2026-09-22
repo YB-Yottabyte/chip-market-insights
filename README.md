@@ -1,11 +1,15 @@
 <h1 align="center">Chip Market Dashboard</h1>
 
-<p align="center">Semiconductor sales, regional trends, and financial performance across six chip companies.</p>
+<p align="center">Global semiconductor sales, regional trends, and company financials.</p>
+
+<p align="center"><a href="powerbi/Chip-Market-Dashboard.pbix">Open the Power BI report</a> · <a href="powerbi/Chip-Market-Dashboard.pdf">View the PDF preview</a></p>
+
+---
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/industry-overview.jpg" alt="Power BI semiconductor industry overview" width="100%"></td>
-    <td width="50%"><img src="docs/screenshots/company-analysis.jpg" alt="Power BI semiconductor company analysis" width="100%"></td>
+    <td width="50%"><img src="docs/screenshots/industry-overview.jpg" alt="Semiconductor industry overview" width="100%"></td>
+    <td width="50%"><img src="docs/screenshots/company-analysis.jpg" alt="Semiconductor company analysis" width="100%"></td>
   </tr>
   <tr>
     <td align="center">Industry overview</td>
@@ -13,118 +17,118 @@
   </tr>
 </table>
 
-Chips are hard to miss in the news in 2026. An [AP story about TSMC expanding chip production](https://apnews.com/article/ba05b1b952257d371acb9d070e7914ff) made me curious about the bigger picture: how global sales changed over time, which regions grew, and how different chip companies performed. This dashboard brings WSTS market data and SEC filings together to explore those questions. Python and SQL prepare the data for analysis in Power BI.
+<br>
 
-## How the data moves
+Chips keep making the news, but the headlines rarely show how the whole market has changed. I built this dashboard to follow global sales, see which regions are growing, and compare the financial trends of six chip companies. It combines public WSTS market data with SEC filings. Python cleans and checks the data, SQL organizes it, and Power BI makes the trends easier to explore.
+
+<br>
+
+## How it works
 
 ```mermaid
 flowchart LR
-    A[SEC Company Facts] --> C[Python ETL]
-    B[WSTS workbook] --> C
-    D[Optional cited onsemi data] --> C
-    C --> E[Quality checks]
-    E --> F[SQLite or PostgreSQL]
-    F --> G[SQL views and CSV exports]
-    G --> H[Analysis and Power BI]
+    A[SEC financial data] --> C[Python ETL]
+    B[WSTS market workbook] --> C
+    C --> D[Validation]
+    D --> E[SQL database]
+    E --> F[CSV exports and Power BI]
 ```
 
-## Run the project
+## What the report shows
 
-### 1. Clone the repository
+- **Industry overview:** Historical worldwide sales, regional market size, and growth over time.
+- **Company analysis:** Revenue trends, margins, and R&D spending for onsemi, NVIDIA, AMD, Intel, Texas Instruments, and Micron. These companies serve different markets, so their figures need business context.
 
-You need Python 3.12 or newer and internet access for the first SEC download.
+The [Power BI file](powerbi/Chip-Market-Dashboard.pbix) contains the report. The [two-page PDF](powerbi/Chip-Market-Dashboard.pdf) is a quick preview that opens without Power BI Desktop.
+
+## Run the data pipeline
+
+You need Python 3.12 or newer. Run each command in order from a terminal.
+
+**1. Clone the repository.**
 
 ```bash
 git clone https://github.com/YB-Yottabyte/chip-market-insights.git
+```
+
+```bash
 cd chip-market-insights
 ```
 
-### 2. Install the packages
-
-On macOS or Linux:
+**2. Set up Python.** On macOS or Linux:
 
 ```bash
 python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
 ```
 
-On Windows PowerShell:
+```bash
+source .venv/bin/activate
+```
+
+On Windows PowerShell, use these two commands instead:
 
 ```powershell
 py -3.12 -m venv .venv
+```
+
+```powershell
 .\.venv\Scripts\Activate.ps1
+```
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-### 3. Set your SEC contact
+**3. Add your SEC contact.** Copy the example settings:
 
-Copy `.env.example` to `.env`. Use `cp .env.example .env` on macOS or Linux, or `Copy-Item .env.example .env` in PowerShell. Add your own name and email:
-
-```dotenv
-SEC_USER_AGENT=Your Name you@example.com
-DATABASE_URL=sqlite:///data/processed/semiconductor.db
-SEC_CACHE_DAYS=7
-SEC_TIMEOUT_SECONDS=30
+```bash
+cp .env.example .env
 ```
 
-The SEC uses this contact to identify automated requests. The app reads `.env` automatically, and Git ignores it. SQLite is the default database.
+On Windows PowerShell, use:
 
-### 4. Add the industry file
+```powershell
+Copy-Item .env.example .env
+```
 
-Download the XLSX file from the [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) and place the original workbook in `data/raw/industry/`. The loader reads it directly. The [input notes](data/raw/industry/README.md) explain other accepted files.
+Open `.env` and replace the example `SEC_USER_AGENT` with your name and email. The SEC requires a contact for automated requests. The file stays on your computer.
 
-The company data can load without this workbook. Market data and cross-market comparisons need it.
+**4. Add the market workbook.** Download the Excel file from the [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) and put it in `data/raw/industry/`. The [input notes](data/raw/industry/README.md) explain supported formats. Company data can load without the workbook, but market charts need it.
 
-### 5. Run and check the pipeline
+**5. Run the pipeline.**
 
 ```bash
 python -m src.pipeline
-python -m pytest -q
+```
+
+To update the measured project statistics after a run:
+
+```bash
 python -m scripts.resume_metrics
 ```
 
-The pipeline caches SEC responses, validates the rows, updates `data/processed/semiconductor.db`, and writes CSV files to `data/exports/`. Read `data/processed/quality_summary.json` for the checks and row counts. Use `python -m src.pipeline --refresh` to request fresh SEC responses.
+The pipeline caches SEC responses and writes a quality summary after each run. Use `python -m src.pipeline --refresh` when you want fresh SEC responses.
 
-After a successful run, open [exploratory_analysis.ipynb](notebooks/exploratory_analysis.ipynb) with `jupyter lab` to explore the exported data. To use PostgreSQL, set `DATABASE_URL` to a SQLAlchemy PostgreSQL URL and install a compatible driver.
+## Data and outputs
 
-## Datasets
-
-| Dataset | How it is added | What it contains |
-| --- | --- | --- |
-| [SEC Company Facts](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | Downloaded by the pipeline | Financial data for onsemi, NVIDIA, AMD, Intel, Texas Instruments, and Micron |
-| [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) | Download the XLSX file to `data/raw/industry/` | Monthly semiconductor sales by region |
-| [Cited onsemi disclosures](data/reference/onsemi_end_markets.csv) | Included in `data/reference/` | Available Automotive, Industrial, and Other end-market rows |
-
-## Outputs
-
-| File | What it shows |
+| Input | Source |
 | --- | --- |
-| `data/processed/semiconductor.db` | SQLite tables and reporting views |
-| `data/processed/quality_summary.json` | Data checks and row counts from the latest run |
-| `data/exports/vw_company_financials.csv` | Company financial records by fiscal quarter |
-| `data/exports/vw_market_sales.csv` | Monthly semiconductor sales by region |
-| `data/exports/company_metrics.csv` and `market_metrics.csv` | Growth, margins, R&D intensity, and regional measures |
-| `data/exports/onsemi_industry_comparison.csv` | Quarters with a matching three-month industry window |
+| Company financials | [SEC Company Facts API](https://www.sec.gov/search-filings/edgar-application-programming-interfaces), downloaded by the pipeline |
+| Monthly market sales | [WSTS historical workbook](https://www.wsts.org/67/Historical-Billings-Report), added locally |
+| onsemi end-market records | [Cited public disclosures](data/reference/onsemi_end_markets.csv) for the available periods |
 
-The [SQL schema](sql/schema.sql), [views](sql/views.sql), and [example queries](sql/analytics_queries.sql) show how the database is organized. Missing values stay missing. Growth calculations require an actual earlier period.
+| Output | Where to find it |
+| --- | --- |
+| Power BI report and PDF preview | [powerbi/](powerbi/) |
+| SQL database and quality summary | `data/processed/` after a run |
+| Reporting tables and calculated metrics | `data/exports/` after a run |
 
-## Verified run
+Generated data stays out of Git. The [SQL queries](sql/analytics_queries.sql) and [analysis notebook](notebooks/exploratory_analysis.ipynb) show how to explore the results.
 
-The September 22, 2026 (UTC) run loaded **388 company quarters** from **6 companies** and **2,435 industry region-month rows**. All quality checks and **26 tests** passed. These counts can change when the sources update. See the [measured project statistics](docs/RESUME_METRICS.md) and [source checks](docs/SOURCE_VALIDATION.md).
+## Measured results
 
-## Repository map
-
-```text
-src/        Data collection, cleaning, validation, database loading, and analysis
-sql/        Schema, views, and queries
-tests/      Unit and database integration tests
-notebooks/  Exploratory analysis
-data/       Public reference rows and local input/output folders
-docs/       Source checks, metrics, and report screenshots
-powerbi/    Existing Power BI support files
-```
+The latest recorded run loaded **388 company quarters** across **6 companies** and **2,435 industry region-month records**. Quality checks passed. Source data can change, so rerun the pipeline for current counts. See the [measured statistics](docs/RESUME_METRICS.md) and [source audit](docs/SOURCE_VALIDATION.md).
 
 ## Limits
 
-The WSTS workbook is downloaded separately and is not republished here. Company fiscal calendars differ, and some SEC values are unavailable. onsemi end-market rows cover only cited periods. Company and industry trends show timing, not causation.
+The WSTS workbook must be downloaded separately. The PBIX retains a Power BI Service dataset connection, so refreshing it may require access to that dataset. Company fiscal calendars differ, and not every filing contains every metric. onsemi end-market figures cover only periods with cited disclosures. Trends can coincide without one causing the other.

@@ -2,25 +2,11 @@
 
 from __future__ import annotations
 
-import ast
 import json
-from pathlib import Path
 
 import pandas as pd
 
-from src.config import COMPANIES, ROOT, Settings
-
-
-def count_test_functions(test_directory: Path) -> int:
-    """Count defined pytest functions without counting parametrized cases twice."""
-    count = 0
-    for path in test_directory.glob("test_*.py"):
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        count += sum(
-            isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
-            for node in tree.body
-        )
-    return count
+from src.config import COMPANIES, Settings
 
 
 def successful_run(settings: Settings) -> dict | None:
@@ -43,14 +29,12 @@ def _read_export(settings: Settings, name: str) -> pd.DataFrame:
 
 def build_report(settings: Settings) -> str:
     """Build a short report without claiming unverified dashboard work."""
-    test_count = count_test_functions(ROOT / "tests")
     lines = [
         "# Resume metrics",
         "",
         "Counts below come from this repository and its latest successful ETL run.",
         "",
         f"- Companies configured for SEC ingestion: **{len(COMPANIES)}**.",
-        f"- Automated test functions: **{test_count}**.",
     ]
 
     run = successful_run(settings)
@@ -110,7 +94,7 @@ def build_report(settings: Settings) -> str:
             "",
             f"- Built a Python and SQL pipeline for {sources['sec_companies']} semiconductor companies, normalizing {sources['sec_financial_rows']:,} quarterly financial records from SEC Company Facts.",
             f"- Loaded {sources['industry_rows']:,} industry region-month records and produced {database_rows['onsemi_industry_comparison']:,} matched onsemi-to-market growth comparisons.",
-            f"- Validated {total_facts:,} SQL fact rows with automated data-quality checks and {test_count} test functions.",
+            f"- Validated {total_facts:,} SQL fact rows with automated data-quality checks and exported the results for reporting.",
         ]
     )
     return "\n".join(lines) + "\n"
