@@ -1,10 +1,9 @@
 <h1 align="center">Chip Market Dashboard</h1>
 
 <p align="center">Global semiconductor sales, regional trends, and company financials.</p>
-
+<!--
 <p align="center"><a href="powerbi/Chip-Market-Dashboard.pbix">Open the Power BI report</a> · <a href="powerbi/Chip-Market-Dashboard.pdf">View the PDF preview</a></p>
-
----
+-->
 
 <table>
   <tr>
@@ -27,11 +26,28 @@ Chips keep making the news, but the headlines rarely show how the whole market h
 
 ```mermaid
 flowchart LR
-    A[SEC financial data] --> C[Python ETL]
-    B[WSTS market workbook] --> C
-    C --> D[Validation]
-    D --> E[SQL database]
-    E --> F[CSV exports and Power BI]
+    subgraph Sources["Data Sources"]
+        A["SEC Company Filings<br/>Financial & Segment Data"]
+        B["WSTS Market Workbook<br/>Regional Semiconductor Billings"]
+    end
+
+    subgraph Pipeline["Data Pipeline"]
+        C["Python ETL<br/>Extract · Clean · Transform"]
+        D["Data Validation<br/>Schema · Quality · Reconciliation"]
+    end
+
+    subgraph Storage["Analytics Layer"]
+        E[("SQL Database")]
+        F["Analysis-Ready<br/>CSV Exports"]
+        G["Power BI<br/>Interactive Dashboard"]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    E --> G
 ```
 
 ## What the report shows
@@ -93,7 +109,19 @@ Copy-Item .env.example .env
 
 Open `.env` and replace the example `SEC_USER_AGENT` with your name and email. The SEC requires a contact for automated requests. The file stays on your computer.
 
-**4. Add the market workbook.** Download the Excel file from the [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) and put it in `data/raw/industry/`. The [input notes](data/raw/industry/README.md) explain supported formats. Company data can load without the workbook, but market charts need it.
+**4. Add the WSTS market data workbook.**
+
+The industry-level market charts use data from the **WSTS Historical Billings Report**.
+
+1. Go to the [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report).
+2. Download the historical billings Excel workbook.
+3. Place the downloaded file in:
+
+   `data/raw/industry/`
+
+You do **not** need to rename the workbook if its format is supported. See [`data/raw/industry/README.md`](data/raw/industry/README.md) for the accepted filenames and formats.
+
+> **Note:** The application can still load and analyze company financial data without the WSTS workbook. However, industry/market-level charts will not be available until the workbook is added.
 
 **5. Run the pipeline.**
 
@@ -125,10 +153,10 @@ The pipeline caches SEC responses and writes a quality summary after each run. U
 
 Generated data stays out of Git. The [SQL queries](sql/analytics_queries.sql) and [analysis notebook](notebooks/exploratory_analysis.ipynb) show how to explore the results.
 
-## Measured results
+## Data Summary
 
-The latest recorded run loaded **388 company quarters** across **6 companies** and **2,435 industry region-month records**. Quality checks passed. Source data can change, so rerun the pipeline for current counts. See the [measured statistics](docs/RESUME_METRICS.md) and [source audit](docs/SOURCE_VALIDATION.md).
+The latest recorded run loaded **388 company quarters** across **6 companies** and **2,435 industry region-month records**, with all quality checks passing. Because source data can change, rerun the pipeline to obtain current counts. See the [measured statistics](docs/RESUME_METRICS.md) and [source audit](docs/SOURCE_VALIDATION.md).
 
-## Limits
+The **WSTS workbook is downloaded separately** and is required for market-level charts. The PBIX also retains a **Power BI Service dataset connection**, so refreshing it may require dataset access.
 
-The WSTS workbook must be downloaded separately. The PBIX retains a Power BI Service dataset connection, so refreshing it may require access to that dataset. Company fiscal calendars differ, and not every filing contains every metric. onsemi end-market figures cover only periods with cited disclosures. Trends can coincide without one causing the other.
+Coverage varies by source: company fiscal calendars differ, some filings omit certain metrics, and onsemi end-market figures are included only where disclosures are available. Trends shown in the analysis indicate relationships in the data, not necessarily causation.
