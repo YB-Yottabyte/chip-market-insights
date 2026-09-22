@@ -15,11 +15,7 @@
   </tr>
 </table>
 
-<br>
-
 Chips are hard to miss in the news in 2026. An [AP story about TSMC expanding chip production](https://apnews.com/article/ba05b1b952257d371acb9d070e7914ff) made me curious about the bigger picture: how global sales changed over time, which regions grew, and how different chip companies performed. This dashboard brings WSTS market data and SEC filings together to explore those questions. Python and SQL prepare the data for analysis in Power BI.
-
-<br>
 
 ## How the data moves
 
