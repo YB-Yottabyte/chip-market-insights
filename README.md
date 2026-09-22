@@ -1,84 +1,151 @@
 # Chip Market Dashboard
 
-A reproducible analytics project for studying semiconductor market cycles, six public chip companies, and onsemi in detail. Python reads official SEC financial facts, validates fiscal quarters, stores the results in SQL, and exports tables for reporting. Industry data and onsemi end-market disclosures enter through documented local imports. Figures and insights come only from loaded source records.
+An end-to-end semiconductor analytics project built with Python, SQL, and Power BI. It combines public company filings with monthly industry data to study market trends and onsemi's financial performance.
 
-This project is designed for data analytics, business systems, reporting, and automation roles. It uses plain financial questions: which markets grew, how peers performed, and whether onsemi's margins and growth moved with the broader market.
+The analysis compares companies in context. onsemi and Texas Instruments have different markets from NVIDIA, AMD, Intel, and Micron, so the project groups them by business focus instead of ranking them as winners and losers.
 
-## Architecture
+## What this project answers
+
+- How have semiconductor sales changed over time and across regions?
+- How have revenue, margins, and R&D changed for six public chip companies?
+- How has onsemi performed during broader industry growth or contraction?
+- What do cited onsemi disclosures say about its Automotive and Industrial exposure?
+
+## Data flow
 
 ```mermaid
-flowchart TD
-  A[Public SEC Company Facts API] --> C[Python ETL]
-  B[User-downloaded WSTS and onsemi files] --> C
-  C --> D[Cleaning and validation]
-  D --> E[SQLite or PostgreSQL]
-  E --> F[Analytics views and CSV exports]
-  F --> G[Power BI and DAX]
-  G --> H[Business insights]
+flowchart LR
+    A[SEC Company Facts API] --> C[Python ETL]
+    B[WSTS workbook] --> C
+    D[Cited onsemi disclosures] --> C
+    C --> E[Cleaning and quality checks]
+    E --> F[SQLite or PostgreSQL]
+    F --> G[SQL views and CSV exports]
+    G --> H[Analysis and Power BI]
 ```
 
-## Questions answered
+## Run it yourself
 
-- How do semiconductor billings change by month and region when a WSTS file is supplied?
-- How do onsemi's quarterly revenue, margins, and R&D compare with NVIDIA, AMD, Intel, Texas Instruments, and Micron?
-- How does onsemi's year-over-year growth compare with a peer median and a matched three-month industry window?
-- What are Automotive and Industrial shares when a cited onsemi end-market breakout is available?
+### 1. Clone the repository
 
-## Sources and lineage
-
-| Source | Records | Status |
-|---|---|---|
-| [SEC Company Facts API](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | US GAAP revenue, profit, R&D, assets, cash, period and filing date | Live API, cached under `data/raw/sec/` |
-| [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) | Monthly industry billings by region | Download and tidy locally; no values bundled |
-| [onsemi investor relations](https://investor.onsemi.com/) | End-market revenue breakout, when disclosed | Optional cited CSV; no values bundled |
-| Python and DAX | Growth, margins, rolling averages, comparisons | Derived from source rows |
-
-The SEC says its API needs responsible access and caps automated traffic at 10 requests per second. This project sends a contact-bearing User-Agent, caches responses for seven days, retries transient errors, and spaces company requests. See [SEC developer resources](https://www.sec.gov/about/developer-resources).
-
-## Technologies
-
-Python 3.12+, pandas, requests, SQLAlchemy, SQLite or PostgreSQL, pytest, Excel/CSV, Power Query, Power BI, DAX, and Jupyter.
-
-## Setup
+You need Python 3.12 or newer and internet access for the SEC API. Power BI Desktop is only needed if you want to connect the outputs to a local report.
 
 ```bash
-cd semiconductor-market-intelligence
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
+git clone https://github.com/YB-Yottabyte/chip-market-insights.git
+cd chip-market-insights
 ```
 
-Edit `.env`: set `SEC_USER_AGENT` to your name and email, such as `Jane Doe jane@example.com`. The SEC request will stop with a clear error if this value is absent. SQLite is the default. To use PostgreSQL, set `DATABASE_URL` to a SQLAlchemy PostgreSQL URL and install an appropriate driver such as `psycopg[binary]` separately.
+### 2. Install Python packages
+
+On macOS or Linux:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+On Windows PowerShell:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+### 3. Add your SEC contact
+
+Copy `.env.example` to `.env`. Use `cp .env.example .env` on macOS or Linux, or `Copy-Item .env.example .env` in PowerShell. Then set `SEC_USER_AGENT` to your own name and email:
+
+```dotenv
+SEC_USER_AGENT=Your Name you@example.com
+DATABASE_URL=sqlite:///data/processed/semiconductor.db
+SEC_CACHE_DAYS=7
+SEC_TIMEOUT_SECONDS=30
+```
+
+The SEC requires an identifying User-Agent for automated requests. The app reads `.env` automatically. `.env` is ignored by Git.
+
+### 4. Download the industry workbook
+
+Download the XLSX file from the [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report). Put the original workbook in `data/raw/industry/`. The loader reads its `Monthly Data` and `3MMA` sheets directly; no spreadsheet editing is needed. See the [industry input instructions](data/raw/industry/README.md) for other accepted files.
+
+The repository does not distribute the WSTS workbook. If you skip this step, the company financial pipeline still runs, but market tables and onsemi-to-industry comparisons will be empty.
+
+### 5. Run the pipeline
+
+From the repository root, with the virtual environment active:
 
 ```bash
 python -m src.pipeline
-python -m scripts.resume_metrics
-pytest -q
 ```
 
-`python -m src.pipeline --refresh` bypasses a fresh SEC cache. A failed live request may use an older local response and logs that choice. The command writes `data/processed/quality_summary.json`, a SQL database, and CSV exports. Copy WSTS and optional onsemi data into `data/raw/industry/` using [these import instructions](data/raw/industry/README.md), then rerun the pipeline. Never commit raw SEC responses, WSTS files, exports, or databases.
+The command downloads or reuses cached SEC responses, reads the WSTS workbook, checks the records, refreshes the SQL database, and writes CSV exports. The default database is `data/processed/semiconductor.db`.
 
-## Database and calculations
+To request fresh SEC responses even when the local cache is current:
 
-Three dimensions describe companies, observed dates, and regions. Three fact tables store company fiscal quarters, industry region-month sales, and optional onsemi end-market disclosures. [Schema](sql/schema.sql) and [views](sql/views.sql) are included. SQLite works locally; `DATABASE_URL` selects PostgreSQL when available.
+```bash
+python -m src.pipeline --refresh
+```
 
-The Python modules have focused jobs: `fetch_sec.py` handles API requests and caching; `load_industry.py` and `segments.py` read public files; `clean_financials.py` normalizes SEC facts; `transform.py` validates rows; `database.py` loads SQL tables; `metrics.py` and `analysis.py` calculate measures; and `export_powerbi.py` writes reporting exports. `pipeline.py` runs those steps in order. Shared settings and source mappings live in `config.py`.
+### 6. Check the results
 
-The pipeline prefers directly reported 10-Q quarters. It derives Q4 from a 10-K annual amount only if the three earlier quarters for that metric are present. It does not replace missing values with zero. Growth calculations require an actual matching prior fiscal quarter or region-month. Margins divide profit by revenue only when revenue is nonzero. Company fiscal quarters and WSTS calendar months are different time grains; the onsemi industry comparison export requires full three-month windows and a nearby month end.
+```bash
+python -m pytest -q
+python -m scripts.resume_metrics
+```
 
-## Reporting output
+Read `data/processed/quality_summary.json` for the checks and row counts. The generated tables are in `data/exports/`. The second command updates [resume metrics](docs/RESUME_METRICS.md) from the latest successful run.
 
-The pipeline writes SQL views and CSV exports to `data/exports/` for analysis and reporting. The Power BI report is maintained separately by the project owner.
+For exploratory charts, start `jupyter lab` and open [exploratory_analysis.ipynb](notebooks/exploratory_analysis.ipynb) after running the pipeline.
 
-## Data quality and reproducibility
+## What the pipeline creates
 
-Tests cover duplicate company periods, missing keys, invalid quarters, negative sales, company CIK mappings, end-market percentage ranges, quarter derivation, and growth formulas. Run `pytest -q` after any change. Every ETL run validates records before the database refresh and writes a count-based quality report after export.
+| Output | Purpose |
+| --- | --- |
+| `data/raw/sec/*.json` | Cached SEC Company Facts responses |
+| `data/processed/semiconductor.db` | Local SQLite database |
+| `data/processed/quality_summary.json` | Validation results and source counts |
+| `data/exports/vw_company_financials.csv` | Company quarters with financial statement values |
+| `data/exports/vw_market_sales.csv` | Monthly semiconductor sales by region |
+| `data/exports/company_metrics.csv` | Company growth, margins, and R&D intensity |
+| `data/exports/market_metrics.csv` | Market growth, rolling sales, and regional contribution |
+| `data/exports/onsemi_industry_comparison.csv` | Matched onsemi and industry growth observations |
 
-The [source validation snapshot](docs/SOURCE_VALIDATION.md) checks selected loaded values against a SEC 10-Q, SEC 10-K, and SIA's WSTS-based monthly release.
+The pipeline also exports the six dimension and fact tables and calculated insight files. Raw downloads, the local database, exports, and `.env` are excluded from Git.
 
-The [exploratory notebook](notebooks/exploratory_analysis.ipynb) reads only generated CSVs and skips unavailable industry sections. The [resume metrics file](docs/RESUME_METRICS.md) is generated from the code and latest successful run, so project counts can be quoted without invented impact percentages.
+## Data and calculations
+
+| Source | Use |
+| --- | --- |
+| [SEC Company Facts API](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | Revenue, profit, R&D, assets, cash, fiscal periods, and filing dates for onsemi, NVIDIA, AMD, Intel, Texas Instruments, and Micron |
+| [WSTS Historical Billings Report](https://www.wsts.org/67/Historical-Billings-Report) | Monthly semiconductor billings and three-month averages by region |
+| [Cited onsemi disclosures](data/reference/onsemi_end_markets.csv) | Available Automotive, Industrial, and Other end-market observations |
+
+SEC responses are cached for seven days by default. The client uses an identifying User-Agent, retry handling, and spaced requests. The WSTS loader converts the workbook's stated `1000 US$` amounts to USD.
+
+The financial normalizer uses reported 10-Q quarters when available. It derives Q4 from the 10-K annual value only when Q1 through Q3 values for that metric are present. Missing amounts stay missing. Growth rates require a real prior period, and margins use nonzero revenue as the denominator. The onsemi-to-industry comparison uses complete three-month market windows near onsemi's fiscal quarter ends.
+
+The database has company, date, and region dimensions plus company financial, market, and onsemi end-market fact tables. See the [SQL schema](sql/schema.sql), [views](sql/views.sql), and [example queries](sql/analytics_queries.sql). Set `DATABASE_URL` in `.env` to use PostgreSQL; install a compatible PostgreSQL driver separately.
+
+The existing Power BI report is maintained separately. This repository provides its SQL and CSV data sources.
+
+## Verified run snapshot
+
+The local run on September 22, 2026 (UTC) processed **6 companies**, **388 company quarters**, and **2,435 industry region-month rows**. It produced **60 matched onsemi-to-industry growth comparisons**. All data-quality checks passed, and **26 tests** passed. These counts are a snapshot; a new SEC filing or WSTS workbook can change them. See [resume metrics](docs/RESUME_METRICS.md) and the [source validation notes](docs/SOURCE_VALIDATION.md).
+
+## Project layout
+
+```text
+src/        SEC collection, file imports, cleaning, validation, SQL loading, and analysis
+sql/        Reference schema, reporting views, and example queries
+tests/      Unit and database integration tests
+notebooks/  Exploratory analysis using generated exports
+data/       Public reference rows and ignored local inputs and outputs
+docs/       Source checks and measured project statistics
+powerbi/    Existing Power BI support files
+```
 
 ## Limits
 
-The WSTS publication is downloaded by the user and should not be republished from this repository. Its downloaded workbook may need a one-time Power Query reshape into the documented tidy format. Its sales unit must be checked before comparing dollar amounts. SEC Company Facts is not a complete segment database; Automotive and Industrial exposure is shown only from a cited onsemi breakout. Peer fiscal calendars differ, SEC concepts may change over time, and the matched onsemi versus industry chart is descriptive, not causal.
+The WSTS workbook must be downloaded by each user and is not republished here. Company fiscal calendars differ, so equal fiscal-quarter labels do not always mean identical calendar dates. SEC Company Facts does not provide a complete end-market history; onsemi exposure is included only when a cited public disclosure supports it. The onsemi and industry growth comparison describes timing, not causation.
