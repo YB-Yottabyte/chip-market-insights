@@ -2,8 +2,6 @@
 
 <p align="center">Semiconductor sales, regional trends, and financial performance across six chip companies.</p>
 
----
-
 <table>
   <tr>
     <td width="50%"><img src="docs/screenshots/industry-overview.jpg" alt="Power BI semiconductor industry overview" width="100%"></td>
